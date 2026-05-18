@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "../styles/liquid-glass.css";
+
+/* Base styles */
+:root {
+  color-scheme: light;
+  --background: 248 249 250;
+  --on-background: 25 28 29;
+  --on-surface: 25 28 29;
+  --on-surface-variant: 70 69 84;
+  --outline: 118 117 134;
+  --outline-variant: 199 196 215;
+  --surface-primary: 248 249 250;
+  --surface-secondary: 237 238 239;
+  --surface-tertiary: 231 232 233;
+  --surface-variant: 225 227 228;
+  --accent-primary: 70 72 212;
+  --accent-secondary: 107 56 212;
+  --accent-glow: 70 72 212;
+  --txt-primary: 25 28 29;
+  --txt-secondary: 70 69 84;
+  --txt-muted: 118 117 134;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(226, 232, 240, 0.9);
+  --glass-border-hover: rgba(199, 196, 215, 0.9);
+  --glass-highlight: rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 4px 30px rgba(30, 41, 59, 0.04);
+  --glass-light-bg: rgba(255, 255, 255, 0.5);
+  --glass-light-border: rgba(255, 255, 255, 0.4);
+  --glass-light-shadow: 0 2px 16px rgba(30, 41, 59, 0.04);
+  --glass-heavy-bg: rgba(255, 255, 255, 0.75);
+  --glass-heavy-border: rgba(255, 255, 255, 0.5);
+  --glass-heavy-shadow: 0 4px 30px rgba(30, 41, 59, 0.04);
+}
+
+html.dark {
+  color-scheme: dark;
+  --background: 19 19 24;
+  --on-background: 228 225 233;
+  --on-surface: 240 240 245;
+  --on-surface-variant: 199 196 215;
+  --outline: 144 143 160;
+  --outline-variant: 70 69 84;
+  --surface-primary: 10 10 15;
+  --surface-secondary: 18 18 26;
+  --surface-tertiary: 26 26 37;
+  --surface-variant: 53 52 58;
+  --accent-primary: 99 102 241;
+  --accent-secondary: 139 92 246;
+  --accent-glow: 99 102 241;
+  --txt-primary: 240 240 245;
+  --txt-secondary: 160 160 176;
+  --txt-muted: 96 96 112;
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-hover: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --glass-light-bg: rgba(255, 255, 255, 0.02);
+  --glass-light-border: rgba(255, 255, 255, 0.05);
+  --glass-light-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --glass-heavy-bg: rgba(255, 255, 255, 0.06);
+  --glass-heavy-border: rgba(255, 255, 255, 0.1);
+  --glass-heavy-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--on-surface));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Selection */
+::selection {
+  background: rgb(var(--accent-primary));
+  color: #ffffff;
+}
+
+/* Equalizer head pulse */
+@keyframes eq-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    stroke-width: 3;
+  }
+  50% {
+    opacity: 0.6;
+    stroke-width: 4.5;
+  }
+}
+
+/* Gradient text shimmer (home hero) */
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}

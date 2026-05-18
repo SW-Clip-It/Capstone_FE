@@ -1,0 +1,44 @@
+{
+  "name": "literary-classics-video",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "amazon-cognito-identity-js": "^6.3.0",
+    "clsx": "^2.1.0",
+    "encoding": "^0.1.13",
+    "framer-motion": "^11.15.0",
+    "i18next": "^25.10.5",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "material-symbols": "^0.42.3",
+    "next": "13.5.6",
+    "pg": "^8.13.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-i18next": "^16.6.2",
+    "react-player": "^2.16.0",
+    "tailwind-merge": "^3.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.11.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.0",
+    "docx": "^9.6.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "13.5.6",
+    "postcss": "^8.4.0",
+    "pptxgenjs": "^4.0.1",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.5.0"
+  }
+}
