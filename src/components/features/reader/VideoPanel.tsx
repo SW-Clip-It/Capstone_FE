@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { VideoPlayer } from "./VideoPlayer";
+import {
+  SeamlessVideoPlayer,
+  type QueueItem,
+} from "./SeamlessVideoPlayer";
 import { Icon } from "@/components/ui/Icon";
 import { useReaderStore } from "@/stores/readerStore";
-import { getSignedVideoUrl } from "@/lib/supabase/storage";
+import { getSignedVideoUrl } from "@/lib/video/storage";
 import { useToast } from "@/providers/ToastProvider";
 import type { TextBlockWithVideo } from "@/types/database";
-import { truncate } from "@/lib/utils";
 
 interface VideoPanelProps {
   blocks: TextBlockWithVideo[];
@@ -16,72 +18,68 @@ interface VideoPanelProps {
 
 export function VideoPanel({ blocks }: VideoPanelProps) {
   const {
-    activeBlockId,
+    playQueue,
+    queueIndex,
     isPlaying,
-    setActiveBlock,
+    advanceQueue,
     setIsPlaying,
     setVideoProgress,
   } = useReaderStore();
   const { toast } = useToast();
-  const { t } = useTranslation();
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [loadingUrl, setLoadingUrl] = useState(false);
+  const { t, i18n } = useTranslation();
 
-  const activeBlock = blocks.find((b) => b.id === activeBlockId);
-  const activeIndex = blocks.findIndex((b) => b.id === activeBlockId);
+  const [resolved, setResolved] = useState<QueueItem[]>([]);
+  const [resolving, setResolving] = useState(false);
 
-  // Fetch signed URL when active block changes / 활성 블록 변경 시 서명된 URL 가져오기
+  const activeBlockId = playQueue[queueIndex] ?? null;
+  const activeBlock = blocks.find((b) => b.id === activeBlockId) ?? null;
+
+  // Resolve signed URLs for every block in the queue (in parallel) whenever
+  // the queue changes. We resolve ALL of them up-front so the seamless
+  // player can preload the next clip while the current one plays.
+  const queueKey = playQueue.join("|");
   useEffect(() => {
-    if (!activeBlock?.video_clip) {
-      setVideoUrl(null);
+    if (playQueue.length === 0) {
+      setResolved([]);
       return;
     }
-
     let cancelled = false;
-    setLoadingUrl(true);
+    setResolving(true);
 
-    getSignedVideoUrl(activeBlock.video_clip.storage_path)
-      .then((url) => {
+    const items = playQueue
+      .map((id) => blocks.find((b) => b.id === id))
+      .filter((b): b is TextBlockWithVideo => !!b?.video_clip);
+
+    Promise.all(
+      items.map(async (b) => ({
+        blockId: b.id,
+        url: await getSignedVideoUrl(b.video_clip!.storage_path),
+      }))
+    )
+      .then((list) => {
         if (!cancelled) {
-          setVideoUrl(url);
-          setLoadingUrl(false);
+          setResolved(list);
+          setResolving(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
           toast(t("reader.videoLoadError"), "error");
-          setLoadingUrl(false);
+          setResolving(false);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [activeBlock, toast, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueKey, blocks]);
 
-  // Prefetch next block's URL / 다음 블록 URL 미리 가져오기
-  useEffect(() => {
-    if (activeIndex < 0) return;
-    const nextBlock = blocks[activeIndex + 1];
-    if (nextBlock?.video_clip) {
-      getSignedVideoUrl(nextBlock.video_clip.storage_path).catch(() => {});
-    }
-  }, [activeIndex, blocks]);
-
-  const handleEnded = useCallback(() => {
-    // Auto-advance to next block with video / 다음 영상 블록으로 자동 이동
-    for (let i = activeIndex + 1; i < blocks.length; i++) {
-      if (blocks[i].video_clip) {
-        setActiveBlock(blocks[i].id);
-        return;
-      }
-    }
-    setIsPlaying(false);
-  }, [activeIndex, blocks, setActiveBlock, setIsPlaying]);
+  const showLoader = resolving && resolved.length === 0;
 
   return (
     <div className="space-y-4">
-      {loadingUrl ? (
+      {showLoader ? (
         <div className="aspect-video w-full glass rounded-2xl flex items-center justify-center">
           <Icon
             name="progress_activity"
@@ -90,35 +88,36 @@ export function VideoPanel({ blocks }: VideoPanelProps) {
           />
         </div>
       ) : (
-        <VideoPlayer
-          url={videoUrl}
+        <SeamlessVideoPlayer
+          queue={resolved}
+          index={queueIndex < 0 ? 0 : queueIndex}
           isPlaying={isPlaying}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          onEnded={handleEnded}
+          onSegmentProgress={setVideoProgress}
+          onSegmentEnded={advanceQueue}
           onError={() => toast(t("reader.videoError"), "error")}
-          onProgress={setVideoProgress}
         />
       )}
 
-      {/* Now Playing info / 현재 재생 정보 */}
+      {/* Now Playing info */}
       {activeBlock && (
         <div className="glass rounded-xl p-4">
-          <div className="flex items-center gap-2 text-accent-primary text-xs font-medium mb-2">
-            <Icon name="play_circle" size={16} fill />
-            {t("reader.nowPlaying")}
-          </div>
-          <p className="text-sm text-txt-primary leading-relaxed">
-            <span className="text-accent-primary font-medium">
-              {truncate(activeBlock.content.split(/[.!?]/)[0] || "", 60)}
-            </span>
-            {activeBlock.content.length > 60 && (
-              <span className="text-txt-secondary">
-                {activeBlock.content.slice(
-                  (activeBlock.content.split(/[.!?]/)[0] || "").length
-                )}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-accent-primary text-xs font-medium">
+              <Icon name="play_circle" size={16} fill />
+              {t("reader.nowPlaying")}
+            </div>
+            {playQueue.length > 1 && (
+              <span className="text-xs text-on-surface-variant tabular-nums">
+                {t("reader.segment")} {queueIndex + 1}/{playQueue.length}
               </span>
             )}
+          </div>
+          <p className="text-sm text-on-surface leading-relaxed font-reading">
+            {i18n.language === "ko" && activeBlock.content_ko
+              ? activeBlock.content_ko
+              : activeBlock.content}
           </p>
         </div>
       )}

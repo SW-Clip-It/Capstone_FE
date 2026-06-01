@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TextBlock } from "./TextBlock";
+import { ReaderProse } from "./ReaderProse";
 import { Icon } from "@/components/ui/Icon";
-import type { TextBlockWithVideo, Chapter, Work, Bookmark } from "@/types/database";
+import { cn } from "@/lib/utils";
+import type {
+  TextBlockWithVideo,
+  Chapter,
+  Work,
+  Bookmark,
+} from "@/types/database";
 
 interface TextPanelProps {
   work: Work | null;
   chapter: Chapter | null;
   blocks: TextBlockWithVideo[];
   activeBlockId: string | null;
-  onBlockClick: (blockId: string) => void;
+  queueIds: string[];
+  onSelectBlocks: (ids: string[]) => void;
+  onClickBlock: (id: string) => void;
   onBookmarkChange?: (blockId: string, bookmark: Bookmark | null) => void;
   onPrevChapter?: () => void;
   onNextChapter?: () => void;
@@ -25,7 +33,9 @@ export function TextPanel({
   chapter,
   blocks,
   activeBlockId,
-  onBlockClick,
+  queueIds,
+  onSelectBlocks,
+  onClickBlock,
   onBookmarkChange,
   onPrevChapter,
   onNextChapter,
@@ -33,10 +43,16 @@ export function TextPanel({
   hasNext,
   totalChapters,
 }: TextPanelProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const { t, i18n } = useTranslation();
 
-  // Chapter progress = (active block index + 1) / total blocks
+  // Whole-chapter EN ↔ KO toggle (defaults to follow the UI language).
+  const hasKo = blocks.some((b) => b.content_ko);
+  const [showKo, setShowKo] = useState(i18n.language === "ko");
+  useEffect(() => {
+    setShowKo(i18n.language === "ko");
+  }, [i18n.language]);
+
+  // Chapter progress = position of the active block within the chapter.
   const chapterProgress = useMemo(() => {
     if (!activeBlockId || blocks.length === 0) return 0;
     const idx = blocks.findIndex((b) => b.id === activeBlockId);
@@ -44,29 +60,23 @@ export function TextPanel({
     return (idx + 1) / blocks.length;
   }, [activeBlockId, blocks]);
 
-  // Auto-scroll to active block
+  // Auto-scroll the active block into view as the queue advances.
   useEffect(() => {
     if (!activeBlockId) return;
     const el = document.getElementById(`block-${activeBlockId}`);
-    if (el && containerRef.current) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      const isVisible =
-        elRect.top >= containerRect.top &&
-        elRect.bottom <= containerRect.bottom;
-      if (!isVisible) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [activeBlockId]);
 
-  const workTitle = i18n.language === "ko" && work?.title_ko ? work.title_ko : work?.title;
+  const workTitle =
+    i18n.language === "ko" && work?.title_ko ? work.title_ko : work?.title;
   const chapterTitle =
-    i18n.language === "ko" && chapter?.title_ko ? chapter.title_ko : chapter?.title;
+    i18n.language === "ko" && chapter?.title_ko
+      ? chapter.title_ko
+      : chapter?.title;
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Work + Chapter header */}
+      {/* Header */}
       {work && chapter && (
         <div className="px-6 py-5 border-b border-glass-border shrink-0 bg-background/95 backdrop-blur-md">
           <div className="flex items-start justify-between gap-2">
@@ -80,6 +90,21 @@ export function TextPanel({
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              {hasKo && (
+                <button
+                  onClick={() => setShowKo((v) => !v)}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors mr-1",
+                    showKo
+                      ? "bg-accent-primary/10 text-accent-primary"
+                      : "text-on-surface-variant hover:bg-accent-primary/5 hover:text-accent-primary"
+                  )}
+                  title={t("reader.translate")}
+                >
+                  <Icon name="translate" size={15} />
+                  {showKo ? "KO" : "EN"}
+                </button>
+              )}
               <button
                 onClick={onPrevChapter}
                 disabled={!hasPrev}
@@ -117,26 +142,16 @@ export function TextPanel({
         </div>
       )}
 
-      {/* Text blocks */}
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto px-6 py-6 space-y-5 scroll-smooth"
-      >
-        {blocks.map((block) => (
-          <TextBlock
-            key={block.id}
-            block={block}
-            isActive={block.id === activeBlockId}
-            onClick={() => onBlockClick(block.id)}
-            onBookmarkChange={onBookmarkChange}
-          />
-        ))}
-        {blocks.length === 0 && (
-          <div className="text-center py-12 text-on-surface-variant text-sm">
-            {t("reader.noBlocks")}
-          </div>
-        )}
-      </div>
+      {/* Continuous ebook-style prose with drag-to-play */}
+      <ReaderProse
+        blocks={blocks}
+        activeBlockId={activeBlockId}
+        queueIds={queueIds}
+        showKo={showKo}
+        onSelectBlocks={onSelectBlocks}
+        onClickBlock={onClickBlock}
+        onBookmarkChange={onBookmarkChange}
+      />
     </div>
   );
 }

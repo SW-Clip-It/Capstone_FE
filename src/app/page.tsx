@@ -12,6 +12,7 @@ import Image from "next/image";
 import {
   AnimatePresence,
   motion,
+  useInView,
   useScroll,
   useSpring,
   useTransform,
@@ -59,7 +60,7 @@ export default function HomePage() {
 
       <Hero />
       <QuoteSection />
-      <DemoShowcase works={works} i18nLang={i18n.language} t={t} />
+      <DemoShowcase i18nLang={i18n.language} t={t} />
       <HowItWorks />
       <FeaturedLibrary works={works} i18nLang={i18n.language} t={t} />
       <StatsSection />
@@ -282,192 +283,254 @@ function RevealWord({
 }
 
 // ============================================================
-// Demo Showcase — sticky scroll, text↔video sync animation
+// Demo Showcase — auto-looping demo of the real reader interaction:
+// drag-highlight a passage → its blocks' videos play seamlessly.
 // ============================================================
 function DemoShowcase({
-  works,
   i18nLang,
   t,
 }: {
-  works: Work[];
   i18nLang: string;
   t: (k: string) => string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end end"],
-  });
+  const inView = useInView(ref, { margin: "-15%" });
 
-  // Three scenes — each takes a third of the scroll
-  const sceneIndex = useTransform(scrollYProgress, [0, 0.33, 0.66, 1], [0, 0, 1, 2]);
-  const [scene, setScene] = useState(0);
+  // Phase loop: 0 idle → 1 highlighting → 2 queued → 3 scene1 → 4 scene2 → loop
+  const DURATIONS = [1500, 1400, 900, 2500, 2500];
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const unsub = sceneIndex.on("change", (v) => {
-      setScene(Math.floor(v));
-    });
-    return () => unsub();
-  }, [sceneIndex]);
+    if (!inView) return;
+    const id = setTimeout(
+      () => setStep((s) => (s + 1) % DURATIONS.length),
+      DURATIONS[step]
+    );
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, inView]);
+
+  const ko = i18nLang === "ko";
+
+  // A short continuous passage split into 3 blocks; blocks 2 & 3 have video.
+  const blocks = ko
+    ? [
+        { text: "4월의 밝고 차가운 어느 날, ", video: false },
+        { text: "시계가 열세 번을 치고 있었다. ", video: true },
+        { text: "윈스턴 스미스는 재빨리 유리문을 빠져나갔다.", video: true },
+      ]
+    : [
+        { text: "It was a bright cold day in April, ", video: false },
+        { text: "and the clocks were striking thirteen. ", video: true },
+        {
+          text: "Winston Smith slipped quickly through the glass doors.",
+          video: true,
+        },
+      ];
 
   const scenes = [
-    {
-      label: t("home.demoStep1"),
-      excerpt:
-        i18nLang === "ko"
-          ? "재산을 가진 독신 남자에게 아내가 필요하다는 것은 보편적으로 인정되는 진리이다."
-          : "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.",
-      meta:
-        i18nLang === "ko"
-          ? "오만과 편견 · 첫인상"
-          : "Pride and Prejudice · First Impressions",
-      colorA: "#6366f1",
-      colorB: "#8b5cf6",
-    },
-    {
-      label: t("home.demoStep2"),
-      excerpt:
-        i18nLang === "ko"
-          ? "나를 이슈마엘이라 부르라. 몇 해 전, 지갑에 돈이 거의 없어, 나는 잠시 바다로 나가 보기로 했다."
-          : "Call me Ishmael. Some years ago — having little or no money in my purse, I thought I would sail about a little.",
-      meta:
-        i18nLang === "ko"
-          ? "모비 딕 · 나를 이슈마엘이라 부르라"
-          : "Moby Dick · Call Me Ishmael",
-      colorA: "#0ea5e9",
-      colorB: "#1e293b",
-    },
-    {
-      label: t("home.demoStep3"),
-      excerpt:
-        i18nLang === "ko"
-          ? "4월의 밝고 차가운 어느 날, 시계가 열세 번을 치고 있었다."
-          : "It was a bright cold day in April, and the clocks were striking thirteen.",
-      meta:
-        i18nLang === "ko"
-          ? "1984 · 빅 브라더가 너를 보고 있다"
-          : "1984 · Big Brother is Watching",
-      colorA: "#dc2626",
-      colorB: "#ea580c",
-    },
+    { meta: ko ? "1984 · 장면 1" : "1984 · Scene 1", a: "#dc2626", b: "#ea580c" },
+    { meta: ko ? "1984 · 장면 2" : "1984 · Scene 2", a: "#6366f1", b: "#8b5cf6" },
   ];
 
-  const cur = scenes[scene];
+  const highlighted = step >= 1; // blocks 2 & 3 get the highlighter background
+  const playing = step >= 3; // the video is rolling
+  const sceneIdx = step >= 4 ? 1 : 0; // which clip is on screen
+  const activeBlockIdx = step >= 4 ? 2 : step >= 3 ? 1 : -1;
+  const legendActive = step <= 2 ? 0 : step === 3 ? 1 : 2;
+  const legend = [t("home.demoStep1"), t("home.demoStep2"), t("home.demoStep3")];
 
   return (
-    <section
-      ref={ref}
-      className="relative bg-surface-secondary"
-      style={{ height: "260vh" }}
-    >
-      <div className="sticky top-20 h-[calc(100svh-5rem)] flex flex-col justify-center max-w-[1280px] mx-auto px-6 sm:px-8">
+    <section ref={ref} className="relative bg-surface-secondary py-24 sm:py-32">
+      <div className="max-w-[1280px] mx-auto px-6 sm:px-8">
         <SectionLabel>{t("home.demoLabel")}</SectionLabel>
-        <h2 className="font-reading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-on-background mb-3 max-w-[22ch]">
+        <h2 className="font-reading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-on-background mb-3 max-w-[24ch]">
           {t("home.demoTitle")}
         </h2>
-        <p className="font-reading text-lg text-on-surface-variant max-w-[55ch] mb-10">
+        <p className="font-reading text-lg text-on-surface-variant max-w-[58ch] mb-10">
           {t("home.demoSubtitle")}
         </p>
 
-        <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6 lg:gap-10 items-center">
-          {/* Mock video */}
+        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-6 lg:gap-10 items-center">
+          {/* Video mock (left) */}
           <div className="relative aspect-video rounded-2xl overflow-hidden border border-glass-border shadow-xl bg-black">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={scene}
-                initial={{ opacity: 0, scale: 1.05 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0"
-                style={{
-                  background: `linear-gradient(135deg, ${cur.colorA}, ${cur.colorB})`,
-                }}
-              >
-                {/* Decorative animated lines */}
-                <svg
-                  className="absolute inset-0 w-full h-full opacity-50"
-                  viewBox="0 0 100 60"
-                  preserveAspectRatio="none"
+            {!playing ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 text-white/70 bg-gradient-to-br from-zinc-700 to-zinc-900">
+                <Icon
+                  name="ink_highlighter"
+                  size={34}
+                  className="text-white/50"
+                />
+                <p className="text-sm">{t("home.demoDragHint")}</p>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={sceneIdx}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35 }}
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${scenes[sceneIdx].a}, ${scenes[sceneIdx].b})`,
+                  }}
                 >
-                  <motion.path
-                    d="M0 30 Q 25 10 50 30 T 100 30"
-                    stroke="rgba(255,255,255,0.4)"
-                    strokeWidth="0.3"
-                    fill="none"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 2, ease: "easeOut" }}
-                  />
-                  <motion.path
-                    d="M0 40 Q 25 20 50 40 T 100 40"
-                    stroke="rgba(255,255,255,0.25)"
-                    strokeWidth="0.2"
-                    fill="none"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 2.5, ease: "easeOut", delay: 0.2 }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-end p-6">
-                  <div className="text-white">
-                    <div className="text-xs uppercase tracking-widest opacity-80 mb-1">
-                      {t("home.demoLabel")}
-                    </div>
-                    <div className="text-lg font-semibold">{cur.meta}</div>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Play indicator */}
-            <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-black/40 backdrop-blur px-2 py-1 rounded-full text-white text-[10px] font-semibold tracking-wider uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              Now Playing
-            </div>
-          </div>
-
-          {/* Mock text blocks */}
-          <div className="space-y-3">
-            {scenes.map((s, i) => (
-              <motion.div
-                key={i}
-                animate={{
-                  scale: i === scene ? 1 : 0.97,
-                  opacity: i === scene ? 1 : 0.5,
-                }}
-                transition={{ duration: 0.4 }}
-                className={cn(
-                  "relative rounded-xl p-4 border transition-colors",
-                  i === scene
-                    ? "border-accent-primary bg-accent-primary/5"
-                    : "border-glass-border bg-glass-bg"
-                )}
-              >
-                {i === scene && (
-                  <motion.div
-                    layoutId="demo-pulse"
-                    className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-accent-primary text-white text-[10px] font-semibold flex items-center gap-1"
+                  <svg
+                    className="absolute inset-0 w-full h-full opacity-50"
+                    viewBox="0 0 100 60"
+                    preserveAspectRatio="none"
                   >
-                    <Icon name="play_arrow" size={10} fill />
-                    {s.label}
+                    <motion.path
+                      d="M0 32 Q 25 12 50 32 T 100 32"
+                      stroke="rgba(255,255,255,0.4)"
+                      strokeWidth="0.3"
+                      fill="none"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 2, ease: "easeOut" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-end p-6">
+                    <div className="text-white">
+                      <div className="text-xs uppercase tracking-widest opacity-80 mb-1">
+                        {t("home.demoLabel")}
+                      </div>
+                      <div className="text-lg font-semibold">
+                        {scenes[sceneIdx].meta}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+
+            {/* Top badges */}
+            {playing && (
+              <div className="absolute top-4 left-4 flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur px-2 py-1 rounded-full text-white text-[10px] font-semibold tracking-wider uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  Now Playing
+                </div>
+                {sceneIdx === 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-1 bg-accent-primary/90 backdrop-blur px-2 py-1 rounded-full text-white text-[10px] font-semibold"
+                  >
+                    <Icon name="bolt" size={11} fill />
+                    {t("home.demoSeamless")}
                   </motion.div>
                 )}
-                <p
+              </div>
+            )}
+
+            {/* Segment dots + progress (proves continuity across 2 clips) */}
+            {playing && (
+              <div className="absolute bottom-0 inset-x-0 flex items-center gap-1.5 p-4 pointer-events-none">
+                {[0, 1].map((d) => (
+                  <div
+                    key={d}
+                    className="flex-1 h-1 rounded-full bg-white/25 overflow-hidden"
+                  >
+                    <motion.div
+                      key={`${d}-${sceneIdx}`}
+                      className="h-full bg-white rounded-full"
+                      initial={{ width: d < sceneIdx ? "100%" : "0%" }}
+                      animate={{ width: d <= sceneIdx ? "100%" : "0%" }}
+                      transition={{
+                        duration: d === sceneIdx ? 2.3 : 0,
+                        ease: "linear",
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Continuous ebook text with highlighter (right) */}
+          <div>
+            <div className="rounded-2xl border border-glass-border bg-background p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4 h-6">
+                <span className="text-[11px] uppercase tracking-wider text-on-surface-variant">
+                  1984
+                </span>
+                <AnimatePresence>
+                  {highlighted && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-accent-primary bg-accent-primary/10 px-2 py-0.5 rounded-full"
+                    >
+                      <Icon name="playlist_play" size={13} />
+                      {t("home.demoQueue")} · 2
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <p className="font-reading text-[17px] leading-[1.9] text-on-surface text-justify">
+                {blocks.map((b, i) => {
+                  const isHl = highlighted && b.video;
+                  const isActive = i === activeBlockIdx;
+                  return (
+                    <motion.span
+                      key={i}
+                      animate={{
+                        backgroundColor: isActive
+                          ? "rgba(99,102,241,0.28)"
+                          : isHl
+                            ? "rgba(99,102,241,0.12)"
+                            : "rgba(99,102,241,0)",
+                      }}
+                      transition={{
+                        duration: 0.4,
+                        delay: isHl && i === 2 && step === 1 ? 0.25 : 0,
+                      }}
+                      className="rounded-[3px] px-0.5 [box-decoration-break:clone] [-webkit-box-decoration-break:clone]"
+                    >
+                      {b.text}
+                    </motion.span>
+                  );
+                })}
+              </p>
+
+              <div className="h-5 mt-3">
+                <AnimatePresence>
+                  {step === 1 && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-1.5 text-[11px] text-accent-primary"
+                    >
+                      <Icon name="ink_highlighter" size={13} />
+                      {t("home.demoStep1")}…
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* 3-step legend */}
+            <div className="flex items-center gap-2 mt-5">
+              {legend.map((label, i) => (
+                <div
+                  key={i}
                   className={cn(
-                    "font-reading text-sm leading-relaxed",
-                    i === scene
-                      ? "text-on-surface font-medium"
-                      : "text-on-surface-variant"
+                    "flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] sm:text-xs font-medium transition-colors flex-1 justify-center text-center",
+                    legendActive === i
+                      ? "bg-accent-primary text-white"
+                      : "bg-glass-bg text-on-surface-variant"
                   )}
                 >
-                  {s.excerpt}
-                </p>
-                <p className="text-[11px] text-on-surface-variant mt-2">
-                  {s.meta}
-                </p>
-              </motion.div>
-            ))}
+                  <span className="tabular-nums opacity-70">{i + 1}</span>
+                  <span className="hidden sm:inline">{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
