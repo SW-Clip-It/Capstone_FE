@@ -70,6 +70,8 @@
   "reader": {
     "nowPlaying": "재생 중",
     "selectBlock": "텍스트 블록을 선택하면 장면이 재생됩니다",
+    "selectHint": "텍스트를 드래그해 형광펜처럼 칠하면 해당 장면들이 끊김 없이 이어서 재생됩니다",
+    "segment": "장면",
     "chapter": "챕터",
     "prevChapter": "이전 챕터",
     "nextChapter": "다음 챕터",

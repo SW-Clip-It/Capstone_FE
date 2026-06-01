@@ -70,6 +70,8 @@
   "reader": {
     "nowPlaying": "Now Playing",
     "selectBlock": "Select a text block to play its scene",
+    "selectHint": "Drag across the text to highlight — the matching scenes play back-to-back",
+    "segment": "Scene",
     "chapter": "Chapter",
     "prevChapter": "Previous chapter",
     "nextChapter": "Next chapter",

@@ -17,8 +17,14 @@ export default function ReaderPage() {
   const { workId } = useParams<{ workId: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { activeBlockId, setActiveBlock, setCurrentChapter, currentChapterId } =
-    useReaderStore();
+  const {
+    activeBlockId,
+    playQueue,
+    setActiveBlock,
+    setPlayQueue,
+    setCurrentChapter,
+    currentChapterId,
+  } = useReaderStore();
 
   const [work, setWork] = useState<Work | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -133,7 +139,9 @@ export default function ReaderPage() {
           chapter={currentChapter ?? null}
           blocks={blocks}
           activeBlockId={activeBlockId}
-          onBlockClick={setActiveBlock}
+          queueIds={playQueue}
+          onSelectBlocks={setPlayQueue}
+          onClickBlock={setActiveBlock}
           onBookmarkChange={handleBookmarkChange}
           onPrevChapter={() => navigateChapter(-1)}
           onNextChapter={() => navigateChapter(1)}
