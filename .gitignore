@@ -16,8 +16,8 @@ my_docs/
 .claude/
 .idea/
 
-# supabase/.supabase/
-supabase/
+# supabase CLI folder (root only — must NOT match src/lib/supabase etc.)
+/supabase/
 
 # SCRIPTS
 /scripts/
@@ -52,3 +52,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated
+pending-videos.csv

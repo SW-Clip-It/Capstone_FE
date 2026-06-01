@@ -8,7 +8,7 @@ import {
 } from "./SeamlessVideoPlayer";
 import { Icon } from "@/components/ui/Icon";
 import { useReaderStore } from "@/stores/readerStore";
-import { getSignedVideoUrl } from "@/lib/supabase/storage";
+import { getSignedVideoUrl } from "@/lib/video/storage";
 import { useToast } from "@/providers/ToastProvider";
 import type { TextBlockWithVideo } from "@/types/database";
 
