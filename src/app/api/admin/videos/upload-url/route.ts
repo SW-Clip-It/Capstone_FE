@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/aws/db";
-import { getAdminAuth } from "@/lib/aws/admin-auth";
+import { requireAdmin } from "@/lib/aws/admin-auth";
 import { createUploadUrl } from "@/lib/aws/s3";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * (DB mapping is still by text_block_id — resolved from the path at register.)
  */
 export async function POST(request: Request) {
-  if (!getAdminAuth(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

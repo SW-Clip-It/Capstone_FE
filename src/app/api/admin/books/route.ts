@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/aws/db";
-import { getAdminAuth } from "@/lib/aws/admin-auth";
+import { requireAdmin } from "@/lib/aws/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 // ── GET /api/admin/books ──────────────────────────────────────
 // Lists every work with stats: chapters, scenes, videos, coverage %.
 export async function GET(request: Request) {
-  if (!getAdminAuth(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 // }
 // Also accepts `jsonl`: a newline-delimited string of scene objects.
 export async function POST(request: Request) {
-  if (!getAdminAuth(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

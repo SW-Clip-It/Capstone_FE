@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/aws/db";
-import { getAdminAuth } from "@/lib/aws/admin-auth";
+import { requireAdmin } from "@/lib/aws/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export async function GET(
   request: Request,
   { params }: { params: { slug: string } }
 ) {
-  if (!getAdminAuth(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

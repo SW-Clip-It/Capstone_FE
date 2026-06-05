@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/aws/db";
-import { getAdminAuth } from "@/lib/aws/admin-auth";
+import { requireAdmin } from "@/lib/aws/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // `storage_path` is the S3 key (e.g. "works/sign-of-four/ch1/sc1.mp4")
 // or an external https URL.
 export async function POST(request: Request) {
-  if (!getAdminAuth(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
 // DELETE /api/admin/videos?text_block_id=...  (unlink a video)
 export async function DELETE(request: Request) {
-  if (!getAdminAuth(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const id = new URL(request.url).searchParams.get("text_block_id");
