@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 export function Navbar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("light");
   const { t } = useTranslation();
 
@@ -31,6 +32,12 @@ export function Navbar() {
     document.documentElement.classList.toggle("dark", initial === "dark");
   }, []);
 
+  // Close menus on route change
+  useEffect(() => {
+    setMobileOpen(false);
+    setUserMenuOpen(false);
+  }, [pathname]);
+
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -40,11 +47,11 @@ export function Navbar() {
 
   return (
     <nav className="bg-background/70 backdrop-blur-xl sticky top-0 z-50 border-b border-outline-variant/40 shadow-[0_4px_30px_rgba(30,41,59,0.04)]">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
-        {/* Logo + Nav (grouped left like the spec) */}
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 sm:h-20 flex items-center justify-between">
+        {/* Logo + desktop nav */}
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center group">
-            <span className="text-2xl font-black tracking-tighter text-accent-primary">
+            <span className="text-xl sm:text-2xl font-black tracking-tighter text-accent-primary">
               CLIP-IT
             </span>
           </Link>
@@ -70,30 +77,28 @@ export function Navbar() {
         </div>
 
         {/* Right side */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={toggleTheme}
-            aria-label={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-            className="glass w-10 h-10 rounded-xl flex items-center justify-center border border-glass-border hover:bg-glass-bg-hover transition-colors"
+            aria-label="Toggle theme"
+            className="glass w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border border-glass-border hover:bg-glass-bg-hover transition-colors"
           >
             <Icon
               name={theme === "dark" ? "light_mode" : "dark_mode"}
-              size={20}
+              size={18}
               className="text-accent-primary"
               fill
             />
           </button>
-          {/* 언어 전환 / Language Switcher */}
           <LanguageSwitcher />
 
+          {/* Desktop user menu */}
           {user ? (
-            <div className="relative">
+            <div className="relative hidden md:block">
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-glass-bg-hover transition-colors cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-full bg-accent-primary/20 flex items-center justify-center">
                   <Icon name="person" size={18} className="text-accent-primary" />
@@ -102,14 +107,13 @@ export function Navbar() {
                   name="expand_more"
                   size={18}
                   className={cn(
-                    "text-txt-muted transition-transform",
-                    menuOpen && "rotate-180"
+                    "text-on-surface-variant transition-transform",
+                    userMenuOpen && "rotate-180"
                   )}
                 />
               </button>
-
               <AnimatePresence>
-                {menuOpen && (
+                {userMenuOpen && (
                   <motion.div
                     initial={{ opacity: 0, y: 8, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -117,20 +121,18 @@ export function Navbar() {
                     transition={{ duration: 0.15 }}
                     className="absolute right-0 top-full mt-2 w-48 glass-heavy rounded-xl p-1.5 border border-glass-border"
                   >
-                    <Link
-                      href="/profile"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-txt-secondary hover:text-txt-primary hover:bg-white/5 transition-colors"
-                    >
-                      <Icon name="account_circle" size={18} />
+                    <DropItem href="/profile" icon="account_circle" onClick={() => setUserMenuOpen(false)}>
                       {t("nav.profile")}
-                    </Link>
+                    </DropItem>
+                    <DropItem href="/admin" icon="admin_panel_settings" onClick={() => setUserMenuOpen(false)}>
+                      {t("nav.admin")}
+                    </DropItem>
                     <button
                       onClick={() => {
-                        setMenuOpen(false);
+                        setUserMenuOpen(false);
                         signOut();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-txt-secondary hover:text-error hover:bg-error/5 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:text-error hover:bg-error/5 transition-colors cursor-pointer"
                     >
                       <Icon name="logout" size={18} />
                       {t("nav.signOut")}
@@ -140,7 +142,7 @@ export function Navbar() {
               </AnimatePresence>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <Link href="/login">
                 <GlassButton variant="ghost" size="sm">
                   {t("nav.login")}
@@ -154,15 +156,120 @@ export function Navbar() {
             </div>
           )}
 
-          {/* Mobile menu button */}
+          {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 rounded-xl hover:bg-white/5 cursor-pointer"
-            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-glass-bg-hover cursor-pointer text-on-surface"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Menu"
           >
-            <Icon name={menuOpen ? "close" : "menu"} size={24} />
+            <Icon name={mobileOpen ? "close" : "menu"} size={24} />
           </button>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden overflow-hidden border-t border-outline-variant/40 bg-background/95 backdrop-blur-xl"
+          >
+            <div className="px-4 py-3 space-y-1">
+              {navLinks.map((link) => {
+                const isActive = pathname.startsWith(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors",
+                      isActive
+                        ? "bg-accent-primary/10 text-accent-primary font-medium"
+                        : "text-on-surface hover:bg-glass-bg-hover"
+                    )}
+                  >
+                    <Icon name={link.icon} size={20} fill={isActive} />
+                    {link.label}
+                  </Link>
+                );
+              })}
+
+              <div className="h-px bg-outline-variant/40 my-2" />
+
+              {user ? (
+                <>
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-on-surface hover:bg-glass-bg-hover transition-colors"
+                  >
+                    <Icon name="account_circle" size={20} />
+                    {t("nav.profile")}
+                  </Link>
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-on-surface hover:bg-glass-bg-hover transition-colors"
+                  >
+                    <Icon name="admin_panel_settings" size={20} />
+                    {t("nav.admin")}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      signOut();
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error/5 transition-colors"
+                  >
+                    <Icon name="logout" size={20} />
+                    {t("nav.signOut")}
+                  </button>
+                </>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  <Link href="/login" onClick={() => setMobileOpen(false)} className="flex-1">
+                    <div className="text-center px-4 py-2.5 rounded-xl border border-glass-border text-sm text-on-surface">
+                      {t("nav.login")}
+                    </div>
+                  </Link>
+                  <Link href="/signup" onClick={() => setMobileOpen(false)} className="flex-1">
+                    <div className="text-center px-4 py-2.5 rounded-xl bg-accent-primary text-white text-sm font-medium">
+                      {t("nav.signUp")}
+                    </div>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
+  );
+}
+
+function DropItem({
+  href,
+  icon,
+  onClick,
+  children,
+}: {
+  href: string;
+  icon: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:text-on-surface hover:bg-glass-bg-hover transition-colors"
+    >
+      <Icon name={icon} size={18} />
+      {children}
+    </Link>
   );
 }

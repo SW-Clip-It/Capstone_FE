@@ -112,11 +112,11 @@ export default function ReaderPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)]">
-        <div className="lg:w-[55%] p-4">
+      <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-5rem)]">
+        <div className="lg:w-[55%] p-3 sm:p-4">
           <Skeleton variant="video" />
         </div>
-        <div className="lg:w-[45%] p-4 space-y-3">
+        <div className="lg:w-[45%] p-3 sm:p-4 space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="text" className="h-20" />
           ))}
@@ -126,14 +126,19 @@ export default function ReaderPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-5rem)]">
-      <div className="lg:w-1/2 xl:w-[55%] p-4 lg:p-6 overflow-y-auto border-b lg:border-b-0 lg:border-r border-glass-border">
-        <div className="sticky top-0">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-5rem)]">
+      {/* Video — mobile: sticky under navbar; desktop: left column */}
+      <div
+        className="lg:w-1/2 xl:w-[55%] p-3 sm:p-4 lg:p-6 lg:overflow-y-auto border-b lg:border-b-0 lg:border-r border-glass-border
+                   sticky top-16 sm:top-20 z-10 bg-background lg:static lg:z-auto"
+      >
+        <div className="lg:sticky lg:top-0">
           <VideoPanel blocks={blocks} />
         </div>
       </div>
 
-      <div className="lg:w-1/2 xl:w-[45%] overflow-hidden">
+      {/* Text — mobile: flows below; desktop: right column */}
+      <div className="lg:w-1/2 xl:w-[45%] lg:overflow-hidden">
         <TextPanel
           work={work}
           chapter={currentChapter ?? null}

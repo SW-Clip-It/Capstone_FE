@@ -11,7 +11,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/works") ||
     request.nextUrl.pathname.startsWith("/profile") ||
     request.nextUrl.pathname.startsWith("/bookmarks") ||
-    request.nextUrl.pathname.startsWith("/notes");
+    request.nextUrl.pathname.startsWith("/notes") ||
+    request.nextUrl.pathname.startsWith("/admin");
   // 보안 중요
 
   const isAuthRoute =

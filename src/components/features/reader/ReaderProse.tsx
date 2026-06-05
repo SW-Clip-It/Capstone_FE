@@ -60,12 +60,12 @@ export function ReaderProse({
   }, [onSelectBlocks]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col lg:h-full">
       <div
         ref={containerRef}
         onMouseUp={captureSelection}
         onTouchEnd={captureSelection}
-        className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 scroll-smooth"
+        className="lg:flex-1 lg:overflow-y-auto px-5 sm:px-10 py-6 sm:py-8 scroll-smooth"
       >
         {blocks.length === 0 ? (
           <div className="text-center py-12 text-on-surface-variant text-sm">
@@ -221,7 +221,7 @@ function ActiveBlockBar({
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 60, opacity: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 32 }}
-      className="shrink-0 border-t border-glass-border bg-background/95 backdrop-blur-md"
+      className="shrink-0 border-t border-glass-border bg-background/95 backdrop-blur-md sticky bottom-0 z-20 lg:static"
     >
       <AnimatePresence>
         {showNote && (
