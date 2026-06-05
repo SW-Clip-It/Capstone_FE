@@ -21,7 +21,10 @@ export function useAuth() {
         await cognitoSignIn(email, password);
         await refreshUser();
         toast("Welcome back!", "success");
-        router.push("/library");
+        // Hard navigation so the middleware re-evaluates with the fresh
+        // auth cookie (router.push can use a stale prefetch that was
+        // redirected back to /login before login).
+        window.location.assign("/library");
         return true;
       } catch (err: any) {
         toast(err.message || "Login failed", "error");
