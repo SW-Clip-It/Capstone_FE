@@ -17,7 +17,20 @@ export function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("light");
+  const [isAdmin, setIsAdmin] = useState(false);
   const { t } = useTranslation();
+
+  // Only show the Admin menu item to actual admins
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    fetch("/api/admin/me")
+      .then((r) => r.json())
+      .then((d) => setIsAdmin(!!d.isAdmin))
+      .catch(() => setIsAdmin(false));
+  }, [user]);
 
   const navLinks = [
     { href: "/library", label: t("nav.library"), icon: "local_library" },
@@ -124,9 +137,11 @@ export function Navbar() {
                     <DropItem href="/profile" icon="account_circle" onClick={() => setUserMenuOpen(false)}>
                       {t("nav.profile")}
                     </DropItem>
-                    <DropItem href="/admin" icon="admin_panel_settings" onClick={() => setUserMenuOpen(false)}>
-                      {t("nav.admin")}
-                    </DropItem>
+                    {isAdmin && (
+                      <DropItem href="/admin" icon="admin_panel_settings" onClick={() => setUserMenuOpen(false)}>
+                        {t("nav.admin")}
+                      </DropItem>
+                    )}
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);
@@ -210,14 +225,16 @@ export function Navbar() {
                     <Icon name="account_circle" size={20} />
                     {t("nav.profile")}
                   </Link>
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-on-surface hover:bg-glass-bg-hover transition-colors"
-                  >
-                    <Icon name="admin_panel_settings" size={20} />
-                    {t("nav.admin")}
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-on-surface hover:bg-glass-bg-hover transition-colors"
+                    >
+                      <Icon name="admin_panel_settings" size={20} />
+                      {t("nav.admin")}
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       setMobileOpen(false);
