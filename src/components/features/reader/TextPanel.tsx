@@ -20,7 +20,11 @@ interface TextPanelProps {
   queueIds: string[];
   onSelectBlocks: (ids: string[]) => void;
   onClickBlock: (id: string) => void;
+  onPlayAll: () => void;
   onBookmarkChange?: (blockId: string, bookmark: Bookmark | null) => void;
+  onHighlightsAdded?: (
+    created: (import("@/types/database").Highlight & { text_block_id: string })[]
+  ) => void;
   onPrevChapter?: () => void;
   onNextChapter?: () => void;
   hasPrev: boolean;
@@ -36,7 +40,9 @@ export function TextPanel({
   queueIds,
   onSelectBlocks,
   onClickBlock,
+  onPlayAll,
   onBookmarkChange,
+  onHighlightsAdded,
   onPrevChapter,
   onNextChapter,
   hasPrev,
@@ -90,6 +96,14 @@ export function TextPanel({
               </p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={onPlayAll}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-accent-primary text-white hover:bg-accent-primary/90 transition-colors mr-1"
+                title={t("reader.playAll")}
+              >
+                <Icon name="playlist_play" size={16} fill />
+                <span className="hidden sm:inline">{t("reader.playAll")}</span>
+              </button>
               {hasKo && (
                 <button
                   onClick={() => setShowKo((v) => !v)}
@@ -151,6 +165,7 @@ export function TextPanel({
         onSelectBlocks={onSelectBlocks}
         onClickBlock={onClickBlock}
         onBookmarkChange={onBookmarkChange}
+        onHighlightsAdded={onHighlightsAdded}
       />
     </div>
   );

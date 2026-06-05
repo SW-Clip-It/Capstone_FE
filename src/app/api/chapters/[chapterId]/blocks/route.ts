@@ -32,7 +32,16 @@ export async function GET(
                    WHERE text_block_id = tb.id AND user_id = $2
                    LIMIT 1
                  ) bm)
-            END AS bookmark
+            END AS bookmark,
+            CASE WHEN $2 IS NULL THEN '[]'::json
+                 ELSE COALESCE((
+                   SELECT json_agg(json_build_object(
+                     'id', h.id, 'start_offset', h.start_offset, 'end_offset', h.end_offset
+                   ) ORDER BY h.start_offset)
+                   FROM highlights h
+                   WHERE h.text_block_id = tb.id AND h.user_id = $2::text
+                 ), '[]'::json)
+            END AS highlights
      FROM text_blocks tb
      LEFT JOIN video_clips vc ON vc.text_block_id = tb.id
      WHERE tb.chapter_id = $1
@@ -45,6 +54,7 @@ export async function GET(
     ...b,
     video_clip: b.video_clips?.[0] ?? null,
     video_clips: undefined,
+    highlights: b.highlights ?? [],
   }));
 
   return NextResponse.json(mapped);

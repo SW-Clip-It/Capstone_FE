@@ -68,10 +68,17 @@ export interface Bookmark {
   created_at: string;
 }
 
+export interface Highlight {
+  id: string;
+  start_offset: number;
+  end_offset: number;
+}
+
 // Joined types
 export interface TextBlockWithVideo extends TextBlock {
   video_clip: VideoClip | null;
   bookmark?: Bookmark | null;
+  highlights?: Highlight[];
 }
 
 export interface ChapterWithBlocks extends Chapter {

@@ -100,9 +100,9 @@ export function VideoPanel({ blocks }: VideoPanelProps) {
         />
       )}
 
-      {/* Now Playing info */}
+      {/* Now Playing info — hidden on mobile (the script below already shows it) */}
       {activeBlock && (
-        <div className="glass rounded-xl p-4">
+        <div className="hidden lg:block glass rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-accent-primary text-xs font-medium">
               <Icon name="play_circle" size={16} fill />
