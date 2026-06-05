@@ -34,11 +34,11 @@ export default function ProfilePage() {
       {/* User info / 사용자 정보 */}
       <GlassCard hover={false} className="p-6 mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-accent-primary/20 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-accent-primary/20 flex items-center justify-center shrink-0">
             <Icon name="person" size={32} className="text-accent-primary" />
           </div>
-          <div>
-            <p className="font-semibold text-lg">{user?.email}</p>
+          <div className="min-w-0">
+            <p className="font-semibold text-lg break-all">{user?.email}</p>
             <p className="text-txt-muted text-sm">
               {t("profile.memberSince")}{" "}
               {user?.created_at

@@ -41,6 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.cookie = `cognitoIdToken=${session
         .getIdToken()
         .getJwtToken()}; path=/; max-age=3600; SameSite=Lax`;
+      // 로그인한 유저를 서버 app_users에 동기화 (관리자 유저관리용)
+      fetch("/api/me/sync", { method: "POST" }).catch(() => {});
     } else {
       setUser(null);
       document.cookie =

@@ -75,10 +75,10 @@ export function TextPanel({
       : chapter?.title;
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col lg:h-full bg-background">
       {/* Header */}
       {work && chapter && (
-        <div className="px-6 py-5 border-b border-glass-border shrink-0 bg-background/95 backdrop-blur-md">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-glass-border shrink-0 bg-background/95 backdrop-blur-md">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h2 className="text-xl font-bold text-on-surface truncate">

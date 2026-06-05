@@ -1,14 +1,16 @@
 /**
  * S3 → SNS → CLIP-IT webhook
  * ─────────────────────────────────────────────────────────────
- * Receives notifications when a video is uploaded to S3 at
- * `blocks/<text_block_id>.mp4` and registers it in `video_clips`.
+ * Receives notifications when a video is uploaded to S3 under `videos/` and
+ * registers it in `video_clips`. Accepts two key shapes:
+ *   - videos/{slug}/{chapter}_{scene}.mp4   (human-readable, recommended)
+ *   - videos/{text_block_id}.mp4            (UUID)
  *
  * Setup flow (one-time, in AWS console):
  *   1. Create SNS topic   → e.g. `clipit-video-uploaded`
  *   2. S3 bucket → Properties → Event notifications
  *        - Event type:  s3:ObjectCreated:*
- *        - Prefix:      blocks/
+ *        - Prefix:      videos/
  *        - Suffix:      .mp4
  *        - Destination: SNS topic above
  *   3. SNS topic → Create subscription
@@ -79,25 +81,39 @@ export async function POST(request: Request) {
     );
     const size = rec.s3.object.size ?? null;
 
-    // Expect `blocks/<text_block_id>.mp4`
-    const m = key.match(/^blocks\/([0-9a-f-]+)\.mp4$/i);
-    if (!m) {
-      results.push({ key, status: "skipped", reason: "filename pattern" });
-      continue;
-    }
-    const blockId = m[1];
-    if (!UUID_RE.test(blockId)) {
-      results.push({ key, status: "skipped", reason: "not a UUID" });
-      continue;
-    }
+    // Resolve key → text_block. Two accepted shapes:
+    //   1) videos/{slug}/{chapter}_{scene}.mp4   (human-readable, recommended)
+    //   2) videos/{text_block_id}.mp4            (UUID, also accepted)
+    let blockId: string | null = null;
 
-    // Verify the text_block exists
-    const { rows: existing } = await db.query(
-      "SELECT 1 FROM text_blocks WHERE id = $1",
-      [blockId]
-    );
-    if (existing.length === 0) {
-      results.push({ key, status: "skipped", reason: "no matching block" });
+    const human = key.match(/^videos\/([^/]+)\/.*?(\d+)\D+(\d+)\.mp4$/i);
+    const uuidKey = key.match(/^videos\/([0-9a-f-]{36})\.mp4$/i);
+
+    if (human) {
+      const [, slug, chapterStr, sceneStr] = human;
+      const r = await db.query(
+        `SELECT tb.id FROM text_blocks tb
+         JOIN chapters c ON c.id = tb.chapter_id
+         JOIN works w ON w.id = c.work_id
+         WHERE w.slug = $1 AND c.chapter_number = $2 AND tb.block_order = $3`,
+        [slug, Number(chapterStr), Number(sceneStr)]
+      );
+      blockId = r.rows[0]?.id ?? null;
+      if (!blockId) {
+        results.push({ key, status: "skipped", reason: "no matching scene" });
+        continue;
+      }
+    } else if (uuidKey && UUID_RE.test(uuidKey[1])) {
+      const r = await db.query("SELECT id FROM text_blocks WHERE id = $1", [
+        uuidKey[1],
+      ]);
+      blockId = r.rows[0]?.id ?? null;
+      if (!blockId) {
+        results.push({ key, status: "skipped", reason: "no matching block" });
+        continue;
+      }
+    } else {
+      results.push({ key, status: "skipped", reason: "filename pattern" });
       continue;
     }
 

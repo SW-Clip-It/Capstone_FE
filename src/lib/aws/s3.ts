@@ -1,4 +1,8 @@
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let s3Client: S3Client | null = null;
@@ -25,5 +29,23 @@ export async function createPresignedUrl(
     Key: storagePath,
   });
 
+  return getSignedUrl(getS3Client(), command, { expiresIn });
+}
+
+/**
+ * Presigned PUT URL — lets an external uploader (video pipeline) push a file
+ * straight to S3 without holding AWS credentials. They just PUT the bytes to
+ * the returned URL within `expiresIn` seconds.
+ */
+export async function createUploadUrl(
+  storagePath: string,
+  contentType = "video/mp4",
+  expiresIn = 3600
+): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET!,
+    Key: storagePath,
+    ContentType: contentType,
+  });
   return getSignedUrl(getS3Client(), command, { expiresIn });
 }

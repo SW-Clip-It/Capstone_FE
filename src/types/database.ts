@@ -1,5 +1,6 @@
 export interface Work {
   id: string;
+  slug: string | null;
   title: string;
   title_ko: string | null;
   author: string;
