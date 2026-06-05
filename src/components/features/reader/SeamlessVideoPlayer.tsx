@@ -284,50 +284,43 @@ export function SeamlessVideoPlayer({
       {/* Controls */}
       {showControls && (
         <div className="absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none">
-          {/* Queue segment dots */}
+          {/* Queue overview dots (multi-segment) — non-interactive */}
           {queue.length > 1 && (
-            <div className="flex items-center gap-1.5 px-4 pt-3 pointer-events-auto">
+            <div className="flex items-center gap-1.5 px-4 pt-3 pointer-events-none">
               {queue.map((_, i) => (
                 <div
                   key={i}
-                  className="h-1 rounded-full transition-all duration-300"
+                  className="h-0.5 rounded-full"
                   style={{
                     flex: 1,
                     background:
                       i < index
                         ? "rgb(var(--accent-primary))"
-                        : i === index
-                          ? "rgba(255,255,255,0.35)"
-                          : "rgba(255,255,255,0.2)",
+                        : "rgba(255,255,255,0.25)",
                   }}
-                >
-                  {i === index && (
-                    <div
-                      className="h-full rounded-full bg-accent-primary"
-                      style={{ width: `${segProgress * 100}%` }}
-                    />
-                  )}
-                </div>
+                />
               ))}
             </div>
           )}
 
-          {/* Single-segment progress (when only one clip) */}
-          {queue.length === 1 && (
-            <div
-              data-control
-              className="h-1 mx-4 mt-3 bg-white/20 rounded-full cursor-pointer pointer-events-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-                seek(e);
-              }}
-            >
+          {/* Seekable scrubber for the CURRENT segment (always) */}
+          <div
+            data-control
+            className="group/seek mx-4 mt-2 py-2 cursor-pointer pointer-events-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              seek(e);
+            }}
+          >
+            <div className="h-1 bg-white/25 rounded-full relative">
               <div
-                className="h-full bg-accent-primary rounded-full"
+                className="h-full bg-accent-primary rounded-full relative"
                 style={{ width: `${segProgress * 100}%` }}
-              />
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-accent-primary shadow opacity-0 group-hover/seek:opacity-100 transition-opacity" />
+              </div>
             </div>
-          )}
+          </div>
 
           {/* Controls row */}
           <div className="flex items-center gap-3 px-4 py-3 text-white pointer-events-auto">

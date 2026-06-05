@@ -36,6 +36,7 @@ export default function ReaderPage() {
   const targetBlockId = searchParams.get("block");
   const shouldAutoplay = searchParams.get("play") !== "0";
   const consumedDeepLink = useRef(false);
+  const autoPlayedAll = useRef(false);
 
   const chapterId = searchParams.get("chapter") || currentChapterId;
   const currentChapter = chapters.find((c) => c.id === chapterId);
@@ -60,6 +61,7 @@ export default function ReaderPage() {
     setLoading(true);
     setCurrentChapter(chapterId);
     consumedDeepLink.current = false; // re-arm for the new chapter
+    autoPlayedAll.current = false;
 
     fetch(`/api/chapters/${chapterId}/blocks`)
       .then((r) => r.json())
@@ -91,6 +93,23 @@ export default function ReaderPage() {
     }, 100);
   }, [loading, targetBlockId, shouldAutoplay, blocks, setActiveBlock]);
 
+  // Default behaviour: on entering a chapter (no deep-link), auto-play the
+  // ENTIRE script — queue all video scenes in order. A manual drag overrides
+  // this (setPlayQueue replaces the queue), turning off the auto-all.
+  const playAll = useCallback(() => {
+    const ids = blocks.filter((b) => b.video_clip).map((b) => b.id);
+    if (ids.length) setPlayQueue(ids);
+  }, [blocks, setPlayQueue]);
+
+  useEffect(() => {
+    if (loading || targetBlockId || autoPlayedAll.current) return;
+    const ids = blocks.filter((b) => b.video_clip).map((b) => b.id);
+    if (ids.length) {
+      autoPlayedAll.current = true;
+      setPlayQueue(ids);
+    }
+  }, [loading, targetBlockId, blocks, setPlayQueue]);
+
   const navigateChapter = useCallback(
     (offset: number) => {
       const nextCh = chapters[currentIndex + offset];
@@ -105,6 +124,20 @@ export default function ReaderPage() {
     (blockId: string, bookmark: Bookmark | null) => {
       setBlocks((prev) =>
         prev.map((b) => (b.id === blockId ? { ...b, bookmark } : b))
+      );
+    },
+    []
+  );
+
+  const handleHighlightsAdded = useCallback(
+    (created: { id: string; text_block_id: string; start_offset: number; end_offset: number }[]) => {
+      setBlocks((prev) =>
+        prev.map((b) => {
+          const mine = created.filter((c) => c.text_block_id === b.id);
+          return mine.length
+            ? { ...b, highlights: [...(b.highlights ?? []), ...mine] }
+            : b;
+        })
       );
     },
     []
@@ -147,7 +180,9 @@ export default function ReaderPage() {
           queueIds={playQueue}
           onSelectBlocks={setPlayQueue}
           onClickBlock={setActiveBlock}
+          onPlayAll={playAll}
           onBookmarkChange={handleBookmarkChange}
+          onHighlightsAdded={handleHighlightsAdded}
           onPrevChapter={() => navigateChapter(-1)}
           onNextChapter={() => navigateChapter(1)}
           hasPrev={currentIndex > 0}
