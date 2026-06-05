@@ -207,6 +207,30 @@ export default function AdminBookDetail() {
     toast(`미할당 ${keys.length}개 경로 복사됨`, "success");
   }
 
+  const [syncing, setSyncing] = useState(false);
+  async function syncS3() {
+    if (!book) return;
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/admin/videos/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: book.slug }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "실패");
+      toast(
+        `S3 동기화 완료 — ${d.registered}개 등록 (총 ${d.found}개 발견)`,
+        "success"
+      );
+      load();
+    } catch (e: any) {
+      toast(e.message, "error");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="text-center py-20 text-on-surface-variant">
@@ -268,6 +292,19 @@ export default function AdminBookDetail() {
         >
           <Icon name="content_copy" size={15} />
           미할당 경로 복사
+        </button>
+        <button
+          onClick={syncS3}
+          disabled={syncing}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-accent-primary/10 text-accent-primary hover:bg-accent-primary/15 transition-colors disabled:opacity-50"
+          title="S3에 업로드된 영상을 스캔해 DB에 등록"
+        >
+          <Icon
+            name={syncing ? "progress_activity" : "sync"}
+            size={15}
+            className={syncing ? "animate-spin" : ""}
+          />
+          S3 동기화
         </button>
       </div>
 
